@@ -7,7 +7,15 @@ anglerfish that ambushes you at every 1000 m.
 
 Written entirely in **SwiftUI** — the whole scene is drawn in a `Canvas`, driven
 by a `TimelineView` game loop, with Taptic Engine haptics throughout. No
-external assets, no SpriteKit, no companion iPhone app required.
+external art, no SpriteKit, no companion iPhone app required.
+
+## Screenshots
+
+_Captured on the Apple Watch Ultra 3 (49mm) simulator._
+
+| Menu | Gameplay | Boss fight | Game over |
+|:----:|:--------:|:----------:|:---------:|
+| <img src="Screenshots/01-menu.png" width="190" alt="Title screen"> | <img src="Screenshots/02-gameplay.png" width="190" alt="Diving past rocks, mines, jellyfish and coral"> | <img src="Screenshots/03-boss.png" width="190" alt="Anglerfish boss fight"> | <img src="Screenshots/04-gameover.png" width="190" alt="Game over / new best"> |
 
 ---
 
@@ -37,29 +45,60 @@ Best score is saved between sessions.
 
 ---
 
-## Build & run
+## Install & run
 
-Requires **Xcode 16+** (developed on Xcode 26.5 / watchOS 26.5 SDK).
+Requires **Xcode 16+** (developed on Xcode 26.5 / watchOS 26.5 SDK) on a Mac.
 
 ```bash
-open "DepthDiver/DepthDiver.xcodeproj"
+git clone https://github.com/at0m-b0mb/DepthDiver.git
+cd DepthDiver
+open DepthDiver.xcodeproj
 ```
 
-1. Select the **Depth Diver Watch App** scheme.
-2. Pick a destination:
-   - **Simulator:** choose any Apple Watch simulator. If none appear, install a
-     watchOS Simulator runtime via *Xcode ▸ Settings ▸ Components* (it's a
-     multi-GB download Apple doesn't bundle by default).
-   - **Your Apple Watch Ultra:** select your watch. Sideloading to a physical
-     watch needs a paid **Apple Developer Program** membership; set your Team
-     under *Signing & Capabilities* first. A free Apple ID covers the simulator.
-3. Press **Run** (⌘R).
+### Option A — Run in the Simulator (easiest, no account needed)
+
+1. In Xcode's toolbar, click the run-destination dropdown and pick any
+   **Apple Watch** simulator (e.g. *Apple Watch Ultra 3 (49mm)*).
+   - No watch simulators listed? Install a runtime via
+     **Xcode ▸ Settings ▸ Components ▸ watchOS** (a multi-GB download Apple
+     doesn't bundle by default).
+2. Press **Run** (⌘R). The simulator boots and the game launches.
+3. Steering with the Crown in the Simulator: click the Digital Crown on the
+   right edge of the watch, then scroll your mouse wheel / trackpad. Tap the
+   screen to dash.
+
+### Option B — Install on your real Apple Watch ⌚️
+
+Your watch must be **paired to your iPhone**, unlocked, and ideally on its
+charger. A **free Apple ID works** (the app expires after 7 days and just needs
+a re-run from Xcode); a paid **Apple Developer Program** membership removes that
+limit.
+
+1. **Add your Apple ID to Xcode:** *Xcode ▸ Settings ▸ Accounts ▸ +* and sign in.
+2. **Set the signing team:** select the **DepthDiver** project ▸ the
+   **Depth Diver Watch App** target ▸ **Signing & Capabilities** ▸ tick
+   *Automatically manage signing* ▸ choose your **Team** (your name / Personal
+   Team).
+   - If Xcode says the bundle ID is unavailable, change **Bundle Identifier** to
+     something unique like `com.yourname.depthdiver`.
+3. **Enable Developer Mode on the watch** (watchOS 9+): on the Apple Watch,
+   *Settings ▸ Privacy & Security ▸ Developer Mode ▸ On*, then let it restart.
+   (The toggle appears after the watch has been connected to Xcode once.)
+4. **Pick your watch as the destination** in Xcode's toolbar (it shows up once
+   paired; first connection can take a minute over Wi-Fi).
+5. Press **Run** (⌘R). Xcode builds, signs, and installs to the watch.
+6. **Trust the developer** the first time: on the watch,
+   *Settings ▸ General ▸ VPN & Device Management ▸ (your Apple ID) ▸ Trust*,
+   then launch **Depth Diver** from the app grid.
+
+> First install to a physical watch can take a few minutes and occasionally
+> needs a retry — keep the watch unlocked and nearby.
 
 ### Command-line build check
 
 ```bash
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
-xcodebuild -project DepthDiver/DepthDiver.xcodeproj \
+xcodebuild -project DepthDiver.xcodeproj \
   -scheme "Depth Diver Watch App" \
   -sdk watchsimulator26.5 -destination 'generic/platform=watchOS Simulator' \
   CODE_SIGNING_ALLOWED=NO build
@@ -72,6 +111,7 @@ xcodebuild -project DepthDiver/DepthDiver.xcodeproj \
 ```
 DepthDiver/
 ├─ DepthDiver.xcodeproj
+├─ Screenshots/             # images used in this README
 └─ DepthDiverWatchApp/
    ├─ DepthDiverApp.swift     # @main entry, owns the GameEngine
    ├─ ContentView.swift       # phase router (menu / play / game over) + backdrop
@@ -92,6 +132,11 @@ Almost every knob lives at the top of **`GameEngine.swift`** (player size,
 descent curve, oxygen drain, boss interval) and in `spawnObstacle` /
 `obstacleKind` (hazard sizes, depth thresholds for new enemy types). The look —
 colours, the diver, creatures, HUD — is all in **`DepthRenderer.swift`**.
+
+> The screenshots above were generated with a small **Debug-only** demo hook in
+> `GameEngine.swift` (gated behind the `DD_DEMO` launch environment variable and
+> compiled out of Release builds), e.g.
+> `SIMCTL_CHILD_DD_DEMO=boss xcrun simctl launch booted com.at0mb0mb.depthdiver`.
 
 ## Notes on the Ultra's Action Button
 

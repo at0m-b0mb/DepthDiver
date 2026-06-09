@@ -46,6 +46,7 @@ final class GameEngine: ObservableObject {
     private var particleAccum: CGFloat = 0
     private var lastDate: Date?
     private var dying = false
+    private var pendingDemo: String?
     private let bestKey = "DepthDiver.bestScore"
 
     var scrollSpeed: CGFloat { descentSpeed * pxPerMeter }
@@ -53,6 +54,9 @@ final class GameEngine: ObservableObject {
 
     init() {
         bestScore = UserDefaults.standard.integer(forKey: bestKey)
+        #if DEBUG
+        configureLaunchDemo()
+        #endif
     }
 
     // MARK: Lifecycle
@@ -98,6 +102,9 @@ final class GameEngine: ObservableObject {
 
     func advance(to date: Date, size: CGSize) {
         guard phase == .playing else { lastDate = date; return }
+        #if DEBUG
+        if pendingDemo != nil { applyPendingDemo(size: size) }
+        #endif
         let dt = min(CGFloat(date.timeIntervalSince(lastDate ?? date)), 1.0 / 20.0)
         lastDate = date
         guard dt > 0 else { return }
@@ -407,3 +414,60 @@ final class GameEngine: ObservableObject {
         DispatchQueue.main.async { [weak self] in self?.phase = .gameOver }
     }
 }
+
+#if DEBUG
+// MARK: - Launch demo / screenshot helper
+//
+// Boots the app straight into a representative scene for screenshots and QA.
+// Activated only by the `DD_DEMO` launch environment variable, e.g. from a
+// simulator:
+//
+//   SIMCTL_CHILD_DD_DEMO=boss xcrun simctl launch booted com.at0mb0mb.depthdiver
+//
+// Normal launches never set it, so gameplay is unaffected — and the whole
+// block is compiled out of Release builds.
+extension GameEngine {
+    func configureLaunchDemo() {
+        guard let mode = ProcessInfo.processInfo.environment["DD_DEMO"] else { return }
+        switch mode {
+        case "menu":
+            bestScore = max(bestScore, 1240)
+        case "play", "boss":
+            phase = .playing
+            pendingDemo = mode
+        case "over":
+            pearls = 6
+            lastScore = 1240
+            bestScore = max(bestScore, 1240)
+            phase = .gameOver
+        default:
+            break
+        }
+    }
+
+    func applyPendingDemo(size: CGSize) {
+        guard let mode = pendingDemo else { return }
+        pendingDemo = nil
+        let w = size.width, h = size.height
+        invuln = 3   // keep the diver safe while the shot is composed
+        if mode == "boss" {
+            depth = 1000; oxygen = 58; pearls = 4; nextBossDepth = 2000
+            boss = Boss(pos: CGPoint(x: w / 2, y: h * 0.46),
+                        size: CGSize(width: w * 0.8, height: 70),
+                        health: 3, dir: 1, timeLeft: 16)
+        } else {
+            depth = 760; oxygen = 72; pearls = 7
+            obstacles = [
+                Obstacle(kind: .rock,      pos: CGPoint(x: w * 0.28, y: h * 0.60), size: CGSize(width: 38, height: 32), drift: 0),
+                Obstacle(kind: .jellyfish, pos: CGPoint(x: w * 0.70, y: h * 0.74), size: CGSize(width: 28, height: 34), drift: 0),
+                Obstacle(kind: .mine,      pos: CGPoint(x: w * 0.42, y: h * 0.86), size: CGSize(width: 26, height: 26), drift: 0),
+                Obstacle(kind: .coral,     pos: CGPoint(x: w * 0.82, y: h * 0.92), size: CGSize(width: 36, height: 54), drift: 0),
+            ]
+            pickups = [
+                Pickup(kind: .pearl,  pos: CGPoint(x: w * 0.55, y: h * 0.54), radius: 8),
+                Pickup(kind: .oxygen, pos: CGPoint(x: w * 0.20, y: h * 0.82), radius: 11),
+            ]
+        }
+    }
+}
+#endif
